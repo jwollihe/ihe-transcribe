@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Transcribe Setup</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <h1>Set up the form's token</h1>
+  <p class="lede">Encrypts the GitHub token with your passphrase, here in this browser. Nothing you type leaves this page. Do this on your own computer.</p>
+  <ol>
+    <li>Paste the fine-grained token that can only run workflows in <code>ihe-transcribe</code>.</li>
+    <li>Choose a long passphrase: five or six random words is good. Anyone who has it can start runs.</li>
+    <li>Press <strong>Encrypt</strong>, download <code>token.enc.json</code>, and replace the file of that name in the repo.</li>
+  </ol>
+  <form id="s" autocomplete="off">
+    <label>GitHub token <input name="token" type="password" required placeholder="github_pat_…"></label>
+    <label>Passphrase <input name="p1" type="password" required minlength="16"></label>
+    <label>Passphrase again <input name="p2" type="password" required minlength="16"></label>
+    <button type="submit" id="go">Encrypt</button>
+  </form>
+  <p id="status" role="status" aria-live="polite"></p>
+</main>
+<script src="crypto.js"></script>
+<script>
+const form = document.getElementById("s"), statusEl = document.getElementById("status");
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const d = Object.fromEntries(new FormData(form));
+  if (d.p1 !== d.p2) { statusEl.textContent = "The passphrases don't match."; statusEl.className = "err"; return; }
+  statusEl.textContent = "Encrypting (a second or two)…"; statusEl.className = "";
+  const blob = await encryptToken(d.token.trim(), d.p1);
+  if (await decryptToken(blob, d.p1) !== d.token.trim()) { statusEl.textContent = "Self-check failed; try again."; statusEl.className = "err"; return; }
+  form.reset();
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(blob, null, 1) + "\n"], { type: "application/json" }));
+  a.download = "token.enc.json";
+  a.textContent = "Download token.enc.json";
+  statusEl.textContent = "Done. ";
+  statusEl.className = "ok";
+  statusEl.appendChild(a);
+});
+</script>
+</body>
+</html>

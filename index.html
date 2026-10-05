@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>IHE Transcribe</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <h1>Transcribe an episode</h1>
+  <p class="lede">Paste an audio link. The finished transcript is emailed to you, usually within 10–30 minutes.</p>
+
+  <form id="f" autocomplete="off">
+    <label>Audio link
+      <input name="audio_url" type="url" required placeholder="https://… (Podbean, direct MP3, Dropbox, Google Drive, YouTube)">
+    </label>
+    <label>Email the transcript to
+      <input name="email" type="email" required placeholder="you@example.com" autocomplete="email">
+    </label>
+    <label>Node ID <span class="opt">optional</span>
+      <input name="nid" inputmode="numeric" pattern="[0-9]+(-[0-9]+)*" placeholder="218436, or 203846-193081 for several nodes">
+    </label>
+    <label>Note <span class="opt">optional</span>
+      <input name="note" maxlength="300" placeholder="e.g. The Key ep. 216; guest is Jane Smith">
+    </label>
+    <label>Passphrase
+      <input name="passphrase" type="password" required autocomplete="off">
+    </label>
+    <button type="submit" id="go">Start</button>
+  </form>
+
+  <p id="status" role="status" aria-live="polite"></p>
+
+  <details>
+    <summary>On a shared computer</summary>
+    <p>Use a private or incognito window and close it when you're done. This page saves nothing on the device; the passphrase only unlocks the request in this tab.</p>
+  </details>
+</main>
+<script src="crypto.js"></script>
+<script>
+const OWNER = "jwollihe", REPO = "ihe-transcribe", WORKFLOW = "forward.yml";
+const form = document.getElementById("f"), statusEl = document.getElementById("status"), btn = document.getElementById("go");
+
+function say(msg, kind) { statusEl.textContent = msg; statusEl.className = kind || ""; }
+
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const d = Object.fromEntries(new FormData(form));
+  btn.disabled = true;
+  try {
+    say("Unlocking…");
+    const blob = await (await fetch("token.enc.json", { cache: "no-store" })).json();
+    if (!blob.ct) throw new Error("This page isn't set up yet: token.enc.json has no token (see setup.html).");
+    let token;
+    try { token = await decryptToken(blob, d.passphrase); }
+    catch { throw new Error("Wrong passphrase."); }
+
+    say("Encrypting the request…");
+    const pem = await (await fetch("payload-key.pem", { cache: "no-store" })).text();
+    const payload = await encryptPayload(pem, {
+      audio_url: d.audio_url.trim(), email: d.email.trim(),
+      nid: d.nid.trim(), note: d.note.trim(), sent: new Date().toISOString(),
+    });
+
+    say("Starting…");
+    const r = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/actions/workflows/${WORKFLOW}/dispatches`, {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${token}`, "Accept": "application/vnd.github+json",
+                 "X-GitHub-Api-Version": "2022-11-28", "Content-Type": "application/json" },
+      body: JSON.stringify({ ref: "main", inputs: { payload } }),
+    });
+    token = null;
+    if (r.status === 204) {
+      form.reset();
+      say(`Started. The transcript goes to ${d.email}; if something fails, a failure notice goes there instead.`, "ok");
+    } else if (r.status === 401) {
+      throw new Error("GitHub rejected the stored token (expired or revoked). Make a new one and redo setup.html.");
+    } else {
+      throw new Error(`GitHub said ${r.status}: ${(await r.text()).slice(0, 200)}`);
+    }
+  } catch (err) {
+    say(err.message, "err");
+  } finally {
+    form.passphrase.value = "";
+    btn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>

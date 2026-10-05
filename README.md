@@ -1,6 +1,6 @@
 # IHE Transcribe (form)
 
-A one-page form for starting a transcript run without signing in to GitHub. It's served by GitHub Pages at <https://jwollihe.github.io/ihe-transcribe/>. The transcript (or a failure notice) is emailed to the address typed in the form.
+A one-page form for starting a transcript run without signing in to GitHub. It's served by GitHub Pages at <https://jwollihe.github.io/ihe-transcribe/>. The form asks who the transcript is for. While the private repo's `DELIVER_TO` variable is set, the transcript (or a failure notice) goes to that one address, with the requester in the subject, for forwarding; without it, it goes straight to the requester.
 
 This repo is public, so it holds nothing readable: the GitHub token is encrypted with a passphrase, and each request is encrypted before it's sent. The real work happens in the private repo `ihe-transcripts-lite`.
 

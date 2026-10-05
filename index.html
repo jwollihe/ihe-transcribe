@@ -10,14 +10,14 @@
 <body>
 <main>
   <h1>Transcribe an episode</h1>
-  <p class="lede">Paste an audio link. The finished transcript is emailed to you, usually within 10–30 minutes.</p>
+  <p class="lede">Paste an audio link and say who the transcript is for. It reaches them by email when it's ready, usually within an hour.</p>
 
   <form id="f" autocomplete="off">
     <label>Audio link
-      <input name="audio_url" type="url" required placeholder="https://… (Podbean, direct MP3, Dropbox, Google Drive, YouTube)">
+      <input name="audio_url" type="url" required placeholder="https://… (Podbean, direct MP3, Dropbox, Google Drive; not YouTube)">
     </label>
-    <label>Email the transcript to
-      <input name="email" type="email" required placeholder="you@example.com" autocomplete="email">
+    <label>Who's it for? <span class="opt">their email; the tech team forwards the transcript</span>
+      <input name="email" type="email" required placeholder="name@insidehighered.com" autocomplete="email">
     </label>
     <label>Node ID <span class="opt">optional</span>
       <input name="nid" inputmode="numeric" pattern="[0-9]+(-[0-9]+)*" placeholder="218436, or 203846-193081 for several nodes">
@@ -74,7 +74,7 @@ form.addEventListener("submit", async (e) => {
     token = null;
     if (r.status === 204) {
       form.reset();
-      say(`Started. The transcript goes to ${d.email}; if something fails, a failure notice goes there instead.`, "ok");
+      say(`Started. The transcript will reach ${d.email} when it's ready.`, "ok");
     } else if (r.status === 401) {
       throw new Error("GitHub rejected the stored token (expired or revoked). Make a new one and redo setup.html.");
     } else {

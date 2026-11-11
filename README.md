@@ -1,6 +1,6 @@
 # IHE Transcribe (form)
 
-A one-page form for starting a transcript run without signing in to GitHub. It's served by GitHub Pages at <https://jwollihe.github.io/ihe-transcribe/>. The form asks who the transcript is for. While the private repo's `DELIVER_TO` variable is set, the transcript (or a failure notice) goes to that one address, with the requester in the subject, for forwarding; without it, it goes straight to the requester.
+A one-page form for starting a transcript run without signing in to GitHub. It's served by GitHub Pages at <https://jwollihe.github.io/ihe-transcribe/>. The form asks who the transcript is for. The transcript (or a failure notice) is emailed to that address; the private repo's `DELIVER_TO` variable, if set, is CC'd (the tech team's copy).
 
 This repo is public, so it holds nothing readable: the GitHub token is encrypted with a passphrase, and each request is encrypted before it's sent. The real work happens in the private repo `ihe-transcripts-lite`.
 
@@ -8,7 +8,7 @@ This repo is public, so it holds nothing readable: the GitHub token is encrypted
 
 1. **The form (`index.html`).** The passphrase decrypts `token.enc.json` in the browser. The request (audio link, email, nid, note) is encrypted with `payload-key.pem`, the public key.
 2. **The token starts `forward.yml` here.** The token can only run workflows in this repo. This repo's logs are public, so they only show ciphertext.
-3. **`forward.yml` passes the encrypted request on.** It uses the `FORWARD_TOKEN` secret to start `transcribe.yml` in the private repo, which holds the private key (`PAYLOAD_PRIVATE_KEY`), decrypts the request, runs, and emails the result through Resend.
+3. **`forward.yml` passes the encrypted request on.** It uses the `FORWARD_TOKEN` secret to start `transcribe.yml` in the private repo, which holds the private key (`PAYLOAD_PRIVATE_KEY`), decrypts the request, runs, and emails the result through Mandrill (Mailchimp Transactional) from transcripts@insidehighered.com.
 
 If the passphrase leaks, the worst anyone can do is start runs (on Jordan's Claude subscription) and email transcripts to themselves. They can't read the private repo, its runs or its files. To limit even that, set the private repo's `ALLOWED_RECIPIENTS` variable.
 
